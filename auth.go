@@ -79,7 +79,9 @@ func (client *Client) AuthMiddleware() func(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 			} else {
 				nonce := uuid.New().String()
+				session.Flashes("redirect_to")
 				session.AddFlash(r.URL.String(), "redirect_to")
+				session.Flashes("nonce")
 				session.AddFlash(nonce, "nonce")
 				session.Save(r, w)
 				client.DoRedirect(w, nonce)
@@ -119,50 +121,49 @@ func (user *User) Groups(client *Client) []MemberGroup {
 }
 
 // DefaultSignInHandler returns a javascript redirect to a URL determined in the session flash value "redirect_to"
-func (client *Client) DefaultSignInHandler() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		response, err := client.SignInFunc(r)
-		if err != nil {
-			http.Error(w, "Unknown Error", http.StatusInternalServerError)
-			return
-		}
+func (client *Client) DefaultSignInHandler(w http.ResponseWriter, r *http.Request) {
+	response, err := client.SignInFunc(r)
+	if err != nil {
+		http.Error(w, "Unknown Error", http.StatusInternalServerError)
+		return
+	}
 
-		var session *sessions.Session
-		if session, err = client.store.Get(r, client.storeKey); err != nil {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
+	var session *sessions.Session
+	if session, err = client.store.Get(r, client.storeKey); err != nil {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 
-		if nonce := session.Flashes("nonce"); len(nonce) == 0 || nonce[0] != response.Claims.Nonce {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			session.Save(r, w)
-			return
-		}
+	if nonce := session.Flashes("nonce"); len(nonce) == 0 || nonce[0] != response.Claims.Nonce {
+		fmt.Println(nonce)
+		session.Save(r, w)
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
 
-		user := &User{
-			Claims:       response.Claims,
-			RefreshToken: response.RefreshToken,
-		}
+	user := &User{
+		Claims:       response.Claims,
+		RefreshToken: response.RefreshToken,
+	}
 
-		user.SaveToSession(session)
+	user.SaveToSession(session)
 
-		if f := session.Flashes("redirect_to"); len(f) > 0 {
-			session.Save(r, w)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte(
-				`<!DOCTYPE HTML5>
-					<html>
-						<head>
-							<title>redirecting...</title>
-						</head>
-					<body>
-						<script>
-							window.location.href = "` + f[0].(string) + `";
-						</script>
-					</body>
-					</html>`,
-			))
-		}
+	if f := session.Flashes("redirect_to"); len(f) > 0 {
+		session.Save(r, w)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write([]byte(
+			`<!DOCTYPE HTML5>
+				<html>
+					<head>
+						<title>redirecting...</title>
+					</head>
+				<body>
+					<script>
+						window.location.href = "` + f[0].(string) + `";
+					</script>
+				</body>
+				</html>`,
+		))
 	}
 }
 
@@ -173,7 +174,6 @@ func (client *Client) SignOut(w http.ResponseWriter, r *http.Request) {
 	var session *sessions.Session
 	var err error
 	if session, err = client.store.Get(r, client.storeKey); err != nil {
-		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
 
