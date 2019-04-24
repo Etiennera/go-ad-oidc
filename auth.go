@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 )
 
@@ -77,7 +78,7 @@ func (client *Client) AuthMiddleware() func(next http.Handler) http.Handler {
 			if user != nil {
 				next.ServeHTTP(w, r)
 			} else {
-				nonce := "abc"
+				nonce := uuid.New().String()
 				session.AddFlash(r.URL.String(), "redirect_to")
 				session.AddFlash(nonce, "nonce")
 				session.Save(r, w)
@@ -105,6 +106,16 @@ func (client *Client) SessionDetailsPage() func(w http.ResponseWriter, r *http.R
 		w.Write([]byte(fmt.Sprintf("%+v", user)))
 		return
 	}
+}
+
+// Groups returns the groups for a user, or an empty list if something goes wrong
+func (user *User) Groups(client *Client) []MemberGroup {
+	groups, err := client.getGroups(user.RefreshToken)
+	if err != nil {
+		return make([]MemberGroup, 0)
+	}
+
+	return groups
 }
 
 // DefaultSignInHandler returns a javascript redirect to a URL determined in the session flash value "redirect_to"
