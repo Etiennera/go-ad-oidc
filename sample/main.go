@@ -66,7 +66,7 @@ func main() {
 	sessionPage.HandleFunc("/session", client.SessionDetailsPage())
 
 	r.Handle("/session", sessionPage)
-	r.HandleFunc("/signin", client.DefaultSignInHandler())
+	r.HandleFunc("/signin", client.DefaultSignInHandler)
 	r.HandleFunc("/signout", client.DefaultSignOutHandler)
 	r.HandleFunc("/", helloWorldHandler)
 
