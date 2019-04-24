@@ -76,9 +76,9 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-// DoRedirect returns a function that redirects to the authority
-func (client *Client) DoRedirect(w http.ResponseWriter, nonce string) {
-	accessURL := fmt.Sprintf(
+// RedirectURL returns the URL used by DoRedirect to redirect to the authority
+func (client *Client) RedirectURL(nonce string) string {
+	return fmt.Sprintf(
 		"https://login.microsoftonline.com/%s/oauth2/v2.0/authorize?"+
 			"client_id=%s&response_type=id_token+code&redirect_uri=%s"+
 			"&response_mode=form_post&scope=openid+profile&nonce=%s",
@@ -87,7 +87,11 @@ func (client *Client) DoRedirect(w http.ResponseWriter, nonce string) {
 		client.redirectURI,
 		nonce,
 	)
-	w.Header().Add("Location", accessURL)
+}
+
+// DoRedirect returns a function that redirects to the authority
+func (client *Client) DoRedirect(w http.ResponseWriter, nonce string) {
+	w.Header().Add("Location", client.RedirectURL(nonce))
 	w.WriteHeader(http.StatusFound)
 }
 
