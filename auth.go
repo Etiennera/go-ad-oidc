@@ -135,7 +135,6 @@ func (client *Client) DefaultSignInHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if nonce := session.Flashes("nonce"); len(nonce) == 0 || nonce[0] != response.Claims.Nonce {
-		fmt.Println(nonce)
 		session.Save(r, w)
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return

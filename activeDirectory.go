@@ -45,7 +45,7 @@ func NewClient(tenantID, clientID, clientSecret, redirectURI string, store sessi
 		baseURL:      baseURL,
 		redirectURI:  redirectURI,
 		store:        store,
-		storeKey:     "github.com/etiennera/go-ad-oidc user",
+		storeKey:     "GOADOIDC",
 	}
 
 	if len(storeKey) > 0 {
